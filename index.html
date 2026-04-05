@@ -202,33 +202,65 @@ body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellips
 var DB = "https://smrt-kaizencentre-quiz-default-rtdb.asia-southeast1.firebasedatabase.app";
 
 function fbWrite(path, data){
-  return fetch(DB+'/'+path+'.json',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(data)
-  }).then(function(r){if(!r.ok)throw new Error('Write failed: '+r.status);return r.json();});
+  var url = DB+'/'+path+'.json';
+  return fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  }).then(function(r){
+    if(!r.ok) return r.text().then(function(t){throw new Error('Write failed '+r.status+': '+t);});
+    setSyncBadge(true);
+    return r.json();
+  });
 }
 
 function fbRead(path){
-  return fetch(DB+'/'+path+'.json')
-    .then(function(r){if(!r.ok)throw new Error('Read failed: '+r.status);return r.json();})
+  var url = DB+'/'+path+'.json';
+  return fetch(url)
+    .then(function(r){
+      if(!r.ok) return r.text().then(function(t){throw new Error('Read failed '+r.status+': '+t);});
+      return r.json();
+    })
     .then(function(data){
       if(!data) return [];
-      return Object.values(data);
+      if(Array.isArray(data)) return data.filter(Boolean);
+      return Object.values(data).filter(Boolean);
     });
 }
 
 function fbListen(path, callback, intervalMs){
-  // Poll Firebase every N seconds (REST API doesn't support websockets)
   intervalMs = intervalMs || 5000;
+  var failCount = 0;
   function poll(){
-    fbRead(path).then(callback).catch(function(e){
-      console.warn('Firebase read error:',e);
+    fbRead(path).then(function(data){
+      failCount = 0;
+      setSyncBadge(true);
+      callback(data);
+    }).catch(function(e){
+      failCount++;
+      console.warn('Firebase poll error ('+failCount+'):', e.message);
       setSyncBadge(false);
+      if(failCount === 1){
+        console.error('=== FIREBASE TROUBLESHOOTING ===');
+        console.error('1. Open this URL in your browser to test connection:');
+        console.error(DB+'/results.json');
+        console.error('2. If you see "Permission denied", go to Firebase Console');
+        console.error('   Build > Realtime Database > Rules tab');
+        console.error('   Set rules to: {".read":true,".write":true} and click Publish');
+        console.error('================================');
+      }
     });
   }
   poll();
   return setInterval(poll, intervalMs);
+}
+
+function testFirebaseConnection(){
+  console.log('Testing Firebase connection to:', DB);
+  fetch(DB+'/.json?shallow=true')
+    .then(function(r){ return r.json(); })
+    .then(function(d){ console.log('Firebase connection OK:', d); setSyncBadge(true); })
+    .catch(function(e){ console.error('Firebase connection FAILED:', e.message); setSyncBadge(false); });
 }
 
 function setSyncBadge(online){
@@ -520,6 +552,7 @@ if(!QUIZ_MODE){
 
   function startTV(){
     document.getElementById('tv-date').textContent=new Date().toLocaleDateString('en-SG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    testFirebaseConnection();
     // Load QR code
     var qs=document.createElement('script');
     qs.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
