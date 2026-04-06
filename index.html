@@ -642,7 +642,7 @@ if(!QUIZ_MODE){
 
     // Only rebuild DOM and restart rotation if NEW feedback has arrived
     if(withComments.length===_allFeedbackComments.length) return;
-    _allFeedbackComments=withComments;
+    _allFeedbackComments=withComments.slice().reverse(); // most recent first
 
     // Clear existing rotation
     if(tickerTimer){clearInterval(tickerTimer);tickerTimer=null;}
