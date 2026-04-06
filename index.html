@@ -627,23 +627,55 @@ if(!QUIZ_MODE){
     });
   }
 
+  var _allFeedbackComments = [];  // persistent cache across polls
+
   function renderTicker(feedbacks){
     var withComments=feedbacks.filter(function(f){return f.comment&&f.comment.length>0;});
     var tk=document.getElementById('feedback-ticker');if(!tk)return;
-    if(withComments.length===0){tk.innerHTML='<div class="ticker-item"><span style="color:rgba(244,241,236,0.25);font-size:.78rem;font-style:italic">No feedback yet today…</span></div>';return;}
+
+    if(withComments.length===0){
+      _allFeedbackComments=[];
+      if(tickerTimer){clearInterval(tickerTimer);tickerTimer=null;}
+      tk.innerHTML='<div class="ticker-item"><span style="color:rgba(244,241,236,0.25);font-size:.78rem;font-style:italic">No feedback yet today…</span></div>';
+      return;
+    }
+
+    // Only rebuild DOM and restart rotation if NEW feedback has arrived
+    if(withComments.length===_allFeedbackComments.length) return;
+    _allFeedbackComments=withComments;
+
+    // Clear existing rotation
     if(tickerTimer){clearInterval(tickerTimer);tickerTimer=null;}
     tickerIdx=0;
+
     function showPage(idx){
-      var page=withComments.slice(idx,idx+5);if(page.length===0)page=withComments.slice(-5);
-      tk.style.transition='opacity .6s';tk.style.opacity='0';
+      var page=_allFeedbackComments.slice(idx,idx+5);
+      if(page.length===0)page=_allFeedbackComments.slice(-5);
+      tk.style.transition='opacity .6s';
+      tk.style.opacity='0';
       setTimeout(function(){
         tk.innerHTML='';
-        page.forEach(function(f){var div=document.createElement('div');div.className='ticker-item';div.innerHTML='<div class="ticker-name">'+escHtml(f.name)+'<span class="ticker-stars">'+'★'.repeat(f.stars)+'</span></div><div class="ticker-comment">“'+escHtml(f.comment)+'”</div>';tk.appendChild(div);});
+        page.forEach(function(f){
+          var div=document.createElement('div');
+          div.className='ticker-item';
+          div.innerHTML='<div class="ticker-name">'+escHtml(f.name)+'<span class="ticker-stars">'+'★'.repeat(f.stars)+'</span></div>'+
+            '<div class="ticker-comment">“'+escHtml(f.comment)+'”</div>';
+          tk.appendChild(div);
+        });
         tk.style.opacity='1';
       },700);
     }
+
+    // Show latest feedback first (most recent at top)
     showPage(0);
-    if(withComments.length>5)tickerTimer=setInterval(function(){tickerIdx=(tickerIdx+5)%withComments.length;showPage(tickerIdx);},6000);
+
+    // If more than 5 comments, rotate pages every 6 seconds
+    if(_allFeedbackComments.length>5){
+      tickerTimer=setInterval(function(){
+        tickerIdx=(tickerIdx+5)%_allFeedbackComments.length;
+        showPage(tickerIdx);
+      },6000);
+    }
   }
 
   function openOverlay(){
