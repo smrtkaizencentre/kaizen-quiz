@@ -114,6 +114,10 @@ body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellips
 .rb-q{flex:1;color:rgba(244,241,236,0.7);}
 .feedback-section{background:var(--card);border:1px solid var(--border);border-radius:2px;padding:20px;margin-bottom:24px;text-align:left;}
 .feedback-title{font-family:"Rajdhani",sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:16px;}
+.pdpa-box{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:2px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;}
+.pdpa-checkbox{width:18px;height:18px;min-width:18px;accent-color:var(--gold);margin-top:2px;cursor:pointer;}
+.pdpa-text{font-size:.78rem;color:rgba(244,241,236,0.6);line-height:1.5;}
+.pdpa-text a{color:var(--gold);text-decoration:none;}
 .star-row{display:flex;gap:10px;justify-content:center;margin-bottom:10px;}
 .star-btn{font-size:2rem;background:none;border:none;cursor:pointer;color:#555;transition:all .15s ease;line-height:1;}
 .star-btn:hover{color:var(--gold);transform:scale(1.15);}
@@ -435,6 +439,10 @@ if(QUIZ_MODE){
           '<div class="star-row"><button class="star-btn" id="star1">&#9733;</button><button class="star-btn" id="star2">&#9733;</button><button class="star-btn" id="star3">&#9733;</button><button class="star-btn" id="star4">&#9733;</button><button class="star-btn" id="star5">&#9733;</button></div>'+
           '<div class="star-label" id="starlbl">Tap a star to rate</div>'+
           '<textarea class="feedback-textarea" id="fbtxt" rows="3" placeholder="Any comments about the Kaizen Centre or quiz? (optional)"></textarea>'+
+          '<div class="pdpa-box">'+
+            '<input type="checkbox" class="pdpa-checkbox" id="pdpa-chk"/>'+
+            '<div class="pdpa-text">I consent to SMRT collecting my name, organisation and feedback for the purpose of improving the Kaizen Centre visitor experience. This information will not be shared with third parties.</div>'+
+          '</div>'+
           '<button class="btn-feedback" id="btn-fb">Submit Feedback</button>'+
           '<div class="feedback-thanks" id="fbthanks">&#9989; Thank you for your feedback!</div>'+
         '</div></div>';
@@ -528,6 +536,8 @@ if(QUIZ_MODE){
 
   function submitFB(){
     if(selectedStar===0){var lbl=document.getElementById('starlbl');if(lbl){lbl.textContent='Please select a star rating first!';lbl.style.color='var(--wrong)';}return;}
+    var pdpa=document.getElementById('pdpa-chk');
+    if(!pdpa||!pdpa.checked){alert('Please tick the consent checkbox before submitting.');return;}
     var ta=document.getElementById('fbtxt'),comment=ta?ta.value.trim():'';
     if(ta)ta.disabled=true;
     saveFeedback({name:QS.name,stars:selectedStar,comment:comment,visitorType:QS.visitorType,orgName:QS.orgName||'',empNo:QS.empNo||'',ts:Date.now()});
@@ -598,6 +608,7 @@ if(!QUIZ_MODE){
   }
 
   function updateStats(results,feedbacks){
+    var feedbacks=feedbacks.filter(function(f){return !f.hidden;}); // exclude hidden/flagged entries
     var fbNames=feedbacks.map(function(f){return f.name;});
     var allNames=results.map(function(r){return r.name;}).concat(fbNames);
     var unique=allNames.filter(function(n,i){return allNames.indexOf(n)===i;});
@@ -630,7 +641,7 @@ if(!QUIZ_MODE){
   var _allFeedbackComments = [];  // persistent cache across polls
 
   function renderTicker(feedbacks){
-    var withComments=feedbacks.filter(function(f){return f.comment&&f.comment.length>0;});
+    var withComments=feedbacks.filter(function(f){return f.comment&&f.comment.length>0&&!f.hidden;});
     var tk=document.getElementById('feedback-ticker');if(!tk)return;
 
     if(withComments.length===0){
@@ -687,7 +698,10 @@ if(!QUIZ_MODE){
         grid.innerHTML='';
         feedbacks.slice().reverse().forEach(function(f){
           var card=document.createElement('div');card.className='overlay-card';
-          card.innerHTML='<div class="overlay-card-name">'+escHtml(f.name)+(f.orgName?'<span style="color:var(--gold);font-size:.75rem;margin-left:6px">('+escHtml(f.orgName)+')</span>':'')+'</div>'+
+          if(f.hidden)card.style.opacity='0.35';
+          card.innerHTML='<div class="overlay-card-name">'+escHtml(f.name)+(f.orgName?'<span style="color:var(--gold);font-size:.75rem;margin-left:6px">('+escHtml(f.orgName)+')</span>':'')+
+            (f.hidden?'<span style="background:rgba(231,76,60,0.2);color:var(--wrong);font-size:.62rem;padding:1px 6px;border-radius:2px;margin-left:6px;font-family:Rajdhani,sans-serif;font-weight:700">HIDDEN</span>':'')+
+            '</div>'+
             '<div class="overlay-card-stars">'+'★'.repeat(f.stars)+'☆'.repeat(5-f.stars)+'</div>'+
             (f.comment?'<div class="overlay-card-comment">“'+escHtml(f.comment)+'”</div>':'<div class="overlay-card-comment" style="opacity:.4">No comment</div>')+
             '<div class="overlay-card-time">'+tsToTime(f.ts)+'</div>';
