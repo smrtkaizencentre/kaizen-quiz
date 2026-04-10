@@ -159,8 +159,8 @@ body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellips
       <!-- Stats row — full width centred -->
       <div class="stats-bar">
         <div class="stat-item"><div class="stat-val" id="stat-total">0</div><div class="stat-label">Visitors Today</div></div>
-        <div class="stat-item"><div class="stat-val" id="stat-avg">&mdash;</div><div class="stat-label">Avg Score</div></div>
         <div class="stat-item"><div class="stat-val" id="stat-perfect">&mdash;</div><div class="stat-label">&#9733; Avg Rating</div></div>
+        <div class="stat-item"><div class="stat-val" id="stat-avg">&mdash;</div><div class="stat-label">Avg Score</div></div>
       </div>
       <!-- 3-column row: QR | Live Results | Visitor Feedback -->
       <div class="right-panel">
@@ -171,14 +171,14 @@ body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellips
             <div class="qr-instruction"><strong>Point your phone camera here</strong>Answer today's 5 Kaizen questions</div>
           </div>
         </div>
-        <div class="live-feed">
-          <h2><span class="live-dot"></span> Live Results <span class="sync-badge" id="sync-badge">&#9679; Live</span></h2>
-          <div class="feed-entries" id="feed-entries"><div class="feed-empty">Waiting for visitors&hellip;</div></div>
-        </div>
         <div class="feedback-compact">
           <div class="feedback-compact-title"><span class="live-dot"></span> Visitor Feedback</div>
           <div class="feedback-ticker" id="feedback-ticker"><div class="ticker-item"><span style="color:rgba(244,241,236,0.25);font-size:.78rem;font-style:italic">No feedback yet today&hellip;</span></div></div>
           <button class="expand-btn" id="expand-fb-btn">View All Feedback &#8599;</button>
+        </div>
+        <div class="live-feed">
+          <h2><span class="live-dot"></span> Live Results <span class="sync-badge" id="sync-badge">&#9679; Live</span></h2>
+          <div class="feed-entries" id="feed-entries"><div class="feed-empty">Waiting for visitors&hellip;</div></div>
         </div>
       </div>
     </div>
