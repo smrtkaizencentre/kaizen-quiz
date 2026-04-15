@@ -36,6 +36,10 @@ body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellips
 .feed-score.high{color:var(--correct)}.feed-score.mid{color:var(--gold)}.feed-score.low{color:var(--wrong)}
 .feed-empty{font-size:.82rem;color:rgba(244,241,236,0.3);font-style:italic;text-align:center;padding:16px 0;}
 .stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;border-top:none;padding-top:0;width:100%;}
+.cumulative-bar{display:flex;align-items:center;justify-content:center;gap:16px;background:rgba(208,2,27,0.08);border:1px solid rgba(208,2,27,0.2);border-radius:2px;padding:12px 24px;width:100%;margin-top:4px;}
+.cumulative-val{font-family:"Rajdhani",sans-serif;font-size:2.4rem;font-weight:700;color:var(--red);line-height:1;}
+.cumulative-label{font-size:.75rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,236,0.5);}
+.cumulative-since{font-size:.7rem;color:rgba(208,2,27,0.6);letter-spacing:.08em;margin-top:2px;}
 .stat-item{text-align:center;}
 .stat-val{font-family:"Rajdhani",sans-serif;font-size:3rem;font-weight:700;color:var(--gold);line-height:1;}
 .stat-label{font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,236,0.4);margin-top:6px;}
@@ -162,6 +166,14 @@ body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellips
         <div class="stat-item"><div class="stat-val" id="stat-perfect">&mdash;</div><div class="stat-label">&#9733; Avg Rating</div></div>
         <div class="stat-item"><div class="stat-val" id="stat-avg">&mdash;</div><div class="stat-label">Avg Score</div></div>
       </div>
+      <!-- Cumulative visitors bar -->
+      <div class="cumulative-bar">
+        <div style="text-align:center;">
+          <div class="cumulative-val" id="stat-cumulative">518</div>
+          <div class="cumulative-label">Total Visitors</div>
+          <div class="cumulative-since">Since 21 November 2025</div>
+        </div>
+      </div>
       <!-- 3-column row: QR | Live Results | Visitor Feedback -->
       <div class="right-panel">
         <div style="display:flex;justify-content:center;">
@@ -218,6 +230,21 @@ function fbWrite(path, data){
     setSyncBadge(true);
     return r.json();
   });
+}
+
+function fbGetCumulative(callback){
+  fetch(DB+'/cumulative.json')
+    .then(function(r){return r.json();})
+    .then(function(val){callback(val||580);})
+    .catch(function(){callback(580);});
+}
+
+function fbSetCumulative(val){
+  fetch(DB+'/cumulative.json',{
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(val)
+  }).catch(function(e){console.warn('Set cumulative failed:',e);});
 }
 
 function fbRead(path){
@@ -522,6 +549,8 @@ if(QUIZ_MODE){
     QS.current++;
     if(QS.current>=DAILY_QS.length){
       saveResult({name:QS.name,score:QS.score,total:DAILY_QS.length,visitorType:QS.visitorType,orgName:QS.orgName||'',empNo:QS.empNo||'',skipped:false,ts:Date.now()});
+      // Increment cumulative visitor count
+      fbGetCumulative(function(val){fbSetCumulative((val||580)+1);});
       QS.step='result';
     }
     render();
@@ -541,7 +570,11 @@ if(QUIZ_MODE){
     var ta=document.getElementById('fbtxt'),comment=ta?ta.value.trim():'';
     if(ta)ta.disabled=true;
     saveFeedback({name:QS.name,stars:selectedStar,comment:comment,visitorType:QS.visitorType,orgName:QS.orgName||'',empNo:QS.empNo||'',ts:Date.now()});
-    if(QS.skipped)saveResult({name:QS.name,score:0,total:0,skipped:true,visitorType:QS.visitorType,orgName:QS.orgName||'',empNo:QS.empNo||'',ts:Date.now()});
+    if(QS.skipped){
+      saveResult({name:QS.name,score:0,total:0,skipped:true,visitorType:QS.visitorType,orgName:QS.orgName||'',empNo:QS.empNo||'',ts:Date.now()});
+      // Increment cumulative visitor count for feedback-only visitors
+      fbGetCumulative(function(val){fbSetCumulative((val||580)+1);});
+    }
     var fsub=document.getElementById('btn-fb');if(fsub)fsub.disabled=true;
     var fthanks=document.getElementById('fbthanks');
     if(fthanks){
@@ -578,6 +611,11 @@ if(!QUIZ_MODE){
   function startTV(){
     document.getElementById('tv-date').textContent=new Date().toLocaleDateString('en-SG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     testFirebaseConnection();
+    // Load cumulative visitor count
+    fbGetCumulative(function(val){
+      var el=document.getElementById('stat-cumulative');
+      if(el) el.textContent=val.toLocaleString();
+    });
     // Load QR code
     var qs=document.createElement('script');
     qs.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
@@ -589,6 +627,13 @@ if(!QUIZ_MODE){
 
     var key=todayKey();
     // Poll results every 5s
+    // Refresh cumulative count every 30 seconds
+    tvListeners.push(setInterval(function(){
+      fbGetCumulative(function(val){
+        var el=document.getElementById('stat-cumulative');
+        if(el) el.textContent=val.toLocaleString();
+      });
+    },30000));
     tvListeners.push(fbListen('results/'+key, function(results){
       setSyncBadge(true);
       renderFeed(results);
