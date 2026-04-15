@@ -235,8 +235,8 @@ function fbWrite(path, data){
 function fbGetCumulative(callback){
   fetch(DB+'/cumulative.json')
     .then(function(r){return r.json();})
-    .then(function(val){callback(val||580);})
-    .catch(function(){callback(580);});
+    .then(function(val){callback(val||518);})
+    .catch(function(){callback(518);});
 }
 
 function fbSetCumulative(val){
@@ -550,7 +550,7 @@ if(QUIZ_MODE){
     if(QS.current>=DAILY_QS.length){
       saveResult({name:QS.name,score:QS.score,total:DAILY_QS.length,visitorType:QS.visitorType,orgName:QS.orgName||'',empNo:QS.empNo||'',skipped:false,ts:Date.now()});
       // Increment cumulative visitor count
-      fbGetCumulative(function(val){fbSetCumulative((val||580)+1);});
+      fbGetCumulative(function(val){fbSetCumulative((val||518)+1);});
       QS.step='result';
     }
     render();
@@ -573,7 +573,7 @@ if(QUIZ_MODE){
     if(QS.skipped){
       saveResult({name:QS.name,score:0,total:0,skipped:true,visitorType:QS.visitorType,orgName:QS.orgName||'',empNo:QS.empNo||'',ts:Date.now()});
       // Increment cumulative visitor count for feedback-only visitors
-      fbGetCumulative(function(val){fbSetCumulative((val||580)+1);});
+      fbGetCumulative(function(val){fbSetCumulative((val||518)+1);});
     }
     var fsub=document.getElementById('btn-fb');if(fsub)fsub.disabled=true;
     var fthanks=document.getElementById('fbthanks');
